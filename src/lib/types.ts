@@ -9,12 +9,15 @@ export interface User {
   department?: string;
   phone?: string;
   avatar?: string;
+  githubLink?: string;
+  linkedinLink?: string;
 }
 
 export interface Section {
   id: string;
   name: string;
   academicYear: string;
+  semester: string;
   facultyMentor: User | null;
   studentMentors: User[];
   studentCount: number;
@@ -25,6 +28,8 @@ export interface Team {
   name: string;
   sectionId: string;
   members: User[];
+  leadId: string;
+  teamSize: number;
   projectId?: string;
 }
 
@@ -33,6 +38,9 @@ export interface Project {
   title: string;
   domain: ProjectDomain;
   teamId: string;
+  sectionId: string;
+  academicYear: string;
+  semester: string;
   status: ProjectStatus;
   abstract?: string;
   githubLink?: string;

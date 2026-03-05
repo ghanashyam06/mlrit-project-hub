@@ -1,13 +1,103 @@
-import React from 'react';
-import { mockProjects } from '@/lib/mock-data';
+import React, { useState, useMemo } from 'react';
+import { mockProjects, mockTeams, mockSections } from '@/lib/mock-data';
 import StatusBadge from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Download, Filter, ExternalLink } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, Filter, ExternalLink, Github } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Projects: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const [yearFilter, setYearFilter] = useState<string>('all');
+  const [semesterFilter, setSemesterFilter] = useState<string>('all');
+
+  const filteredProjects = useMemo(() => {
+    let projects = mockProjects;
+
+    // Role-based filtering
+    if (user?.role === 'student') {
+      // Students see only their own project
+      const myTeam = mockTeams.find(t => t.members.some(m => m.id === user.id));
+      projects = projects.filter(p => p.teamId === myTeam?.id);
+    } else if (user?.role === 'student_mentor') {
+      // Student mentors see only assigned section projects
+      const assignedSections = mockSections.filter(s => s.studentMentors.some(m => m.id === user.id));
+      const sectionIds = assignedSections.map(s => s.id);
+      projects = projects.filter(p => sectionIds.includes(p.sectionId));
+    } else if (user?.role === 'faculty') {
+      // Faculty see only assigned section projects
+      const assignedSections = mockSections.filter(s => s.facultyMentor?.id === user.id);
+      const sectionIds = assignedSections.map(s => s.id);
+      projects = projects.filter(p => sectionIds.includes(p.sectionId));
+    }
+
+    // Year/semester filters
+    if (yearFilter !== 'all') projects = projects.filter(p => p.academicYear === yearFilter);
+    if (semesterFilter !== 'all') projects = projects.filter(p => p.semester === semesterFilter);
+
+    return projects;
+  }, [user, yearFilter, semesterFilter]);
+
+  const years = [...new Set(mockProjects.map(p => p.academicYear))];
+  const semesters = [...new Set(mockProjects.map(p => p.semester))];
+
+  // For student view, show detailed project card
+  if (user?.role === 'student' && filteredProjects.length > 0) {
+    const project = filteredProjects[0];
+    const team = mockTeams.find(t => t.id === project.teamId);
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">My Project</h1>
+          <p className="text-muted-foreground text-sm mt-1">Your project details and submission status</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-heading font-semibold">{project.title}</h2>
+            <StatusBadge status={project.status} />
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><span className="text-muted-foreground">Domain:</span> <span className="font-medium">{project.domain}</span></div>
+            <div><span className="text-muted-foreground">Academic Year:</span> <span className="font-medium">{project.academicYear}</span></div>
+            <div><span className="text-muted-foreground">Semester:</span> <span className="font-medium">{project.semester}</span></div>
+            <div><span className="text-muted-foreground">Last Updated:</span> <span className="font-medium">{project.updatedAt}</span></div>
+          </div>
+          {project.githubLink && (
+            <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-4 text-sm text-primary hover:underline">
+              <Github className="w-4 h-4" /> {project.githubLink}
+            </a>
+          )}
+          {project.abstract && <p className="mt-4 text-sm text-muted-foreground">{project.abstract}</p>}
+          {project.feedback && (
+            <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-xs text-muted-foreground font-medium mb-1">Feedback</p>
+              <p className="text-sm">{project.feedback}</p>
+            </div>
+          )}
+
+          <div className="mt-6 p-4 rounded-lg bg-muted/30 border border-border/50">
+            <p className="text-xs text-muted-foreground font-medium mb-3">Submission Checklist</p>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {[
+                { label: 'Abstract', done: !!project.abstract },
+                { label: 'PPT', done: !!project.pptFile },
+                { label: 'Project Report', done: !!project.reportFile },
+                { label: 'Yukthi File', done: !!project.yukthiFile },
+                { label: 'GitHub Link', done: !!project.githubLink },
+                { label: 'Video Link', done: !!project.videoLink },
+              ].map(item => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full border-2 ${item.done ? 'bg-primary border-primary' : 'border-border'}`} />
+                  <span className={item.done ? 'text-foreground' : 'text-muted-foreground'}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -17,15 +107,33 @@ const Projects: React.FC = () => {
           <p className="text-muted-foreground text-sm mt-1">Track and manage all micro projects</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4 mr-2" /> Filter
-          </Button>
           {isAdmin && (
             <Button variant="outline" size="sm">
               <Download className="w-4 h-4 mr-2" /> Export Excel
             </Button>
           )}
         </div>
+      </div>
+
+      <div className="flex gap-3">
+        <Select value={yearFilter} onValueChange={setYearFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Academic Year" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Years</SelectItem>
+            {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={semesterFilter} onValueChange={setSemesterFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Semester" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Semesters</SelectItem>
+            {semesters.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -36,18 +144,18 @@ const Projects: React.FC = () => {
                 <th className="text-left p-4 font-medium text-muted-foreground">Title</th>
                 <th className="text-left p-4 font-medium text-muted-foreground">Domain</th>
                 <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
+                <th className="text-left p-4 font-medium text-muted-foreground">Year</th>
                 <th className="text-left p-4 font-medium text-muted-foreground">Updated</th>
                 <th className="text-left p-4 font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {mockProjects.map(project => (
+              {filteredProjects.map(project => (
                 <tr key={project.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
-                  <td className="p-4">
-                    <p className="font-medium">{project.title}</p>
-                  </td>
+                  <td className="p-4"><p className="font-medium">{project.title}</p></td>
                   <td className="p-4 text-muted-foreground">{project.domain}</td>
                   <td className="p-4"><StatusBadge status={project.status} /></td>
+                  <td className="p-4 text-muted-foreground">{project.academicYear}</td>
                   <td className="p-4 text-muted-foreground">{project.updatedAt}</td>
                   <td className="p-4">
                     <Button variant="ghost" size="sm">
@@ -56,6 +164,9 @@ const Projects: React.FC = () => {
                   </td>
                 </tr>
               ))}
+              {filteredProjects.length === 0 && (
+                <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No projects found</td></tr>
+              )}
             </tbody>
           </table>
         </div>

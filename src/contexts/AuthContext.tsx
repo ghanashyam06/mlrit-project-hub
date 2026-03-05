@@ -7,6 +7,7 @@ interface AuthContextType {
   login: (email: string, password: string) => boolean;
   logout: () => void;
   switchRole: (role: UserRole) => void;
+  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'phone' | 'githubLink' | 'linkedinLink'>>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -26,7 +27,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(found);
       return true;
     }
-    // Default: login as admin for demo
     setUser(mockUsers[0]);
     return true;
   };
@@ -38,8 +38,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (found) setUser(found);
   };
 
+  const updateProfile = (updates: Partial<Pick<User, 'name' | 'email' | 'phone' | 'githubLink' | 'linkedinLink'>>) => {
+    if (user) {
+      setUser({ ...user, ...updates });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, switchRole }}>
+    <AuthContext.Provider value={{ user, login, logout, switchRole, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
