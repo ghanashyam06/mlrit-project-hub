@@ -25,11 +25,11 @@ export const mockTeams: Team[] = [
 ];
 
 export const mockProjects: Project[] = [
-  { id: 'p1', title: 'Smart Attendance System using Face Recognition', domain: 'Artificial Intelligence', teamId: 't1', sectionId: 's1', academicYear: '2024-25', semester: 'Sem 1', status: 'Faculty Review', githubLink: 'https://github.com/example/smart-attendance', updatedAt: '2024-12-15' },
+  { id: 'p1', title: 'Smart Attendance System using Face Recognition', domain: 'Artificial Intelligence', teamId: 't1', sectionId: 's1', academicYear: '2024-25', semester: 'Sem 1', status: 'Completed', githubLink: 'https://github.com/example/smart-attendance', updatedAt: '2024-12-15' },
   { id: 'p2', title: 'IoT-Based Smart Irrigation', domain: 'IoT', teamId: 't2', sectionId: 's1', academicYear: '2024-25', semester: 'Sem 1', status: 'Draft', updatedAt: '2024-12-14' },
   { id: 'p3', title: 'Campus Navigation Chatbot', domain: 'Chatbots', teamId: 't1', sectionId: 's1', academicYear: '2024-25', semester: 'Sem 1', status: 'Approved', githubLink: 'https://github.com/example/campus-chatbot', updatedAt: '2024-12-10' },
   { id: 'p4', title: 'Drone-Based Campus Surveillance', domain: 'Drone Technology', teamId: 't2', sectionId: 's2', academicYear: '2024-25', semester: 'Sem 1', status: 'Student Mentor Review', updatedAt: '2024-12-13' },
-  { id: 'p5', title: 'Automated Lab Equipment Tracker', domain: 'Automation', teamId: 't1', sectionId: 's2', academicYear: '2024-25', semester: 'Sem 2', status: 'Submitted to CIE', githubLink: 'https://github.com/example/lab-tracker', updatedAt: '2024-12-08' },
+  { id: 'p5', title: 'Automated Lab Equipment Tracker', domain: 'Automation', teamId: 't1', sectionId: 's2', academicYear: '2024-25', semester: 'Sem 2', status: 'Completed', githubLink: 'https://github.com/example/lab-tracker', updatedAt: '2024-12-08' },
 ];
 
 export const mockAnnouncements: Announcement[] = [
@@ -48,4 +48,4 @@ export const domainStats = [
   { name: 'Drone Tech', count: 60, color: 'hsl(145, 50%, 50%)' },
 ];
 
-export const currentUser: User = mockUsers[0]; // Admin by default
+export const currentUser: User = mockUsers[0];

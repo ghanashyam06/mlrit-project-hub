@@ -25,7 +25,7 @@ const AppSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
     admin: 'Admin',
     faculty: 'Faculty Mentor',
     student_mentor: 'Student Mentor',
-    student: 'Student',
+    student: 'Team Portal',
   };
 
   const roleColor: Record<string, string> = {
@@ -39,14 +39,24 @@ const AppSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'faculty', 'student_mentor', 'student'] },
     { to: '/sections', icon: Layers, label: 'Sections', roles: ['admin', 'faculty', 'student_mentor'] },
     { to: '/mentors', icon: Users, label: 'Mentors', roles: ['admin'] },
-    { to: '/teams', icon: FolderKanban, label: 'Teams', roles: ['admin', 'faculty', 'student_mentor', 'student'] },
-    { to: '/projects', icon: FileCheck, label: 'Projects', roles: ['admin', 'faculty', 'student_mentor', 'student'] },
+    { to: '/teams', icon: FolderKanban, label: 'My Team', studentLabel: true, roles: ['admin', 'faculty', 'student_mentor', 'student'] },
+    { to: '/projects', icon: FileCheck, label: 'My Project', studentLabel: true, roles: ['admin', 'faculty', 'student_mentor', 'student'] },
     { to: '/announcements', icon: Megaphone, label: 'Announcements', roles: ['admin', 'faculty', 'student_mentor', 'student'] },
     { to: '/archive', icon: Archive, label: 'Archive', roles: ['admin', 'faculty', 'student_mentor', 'student'] },
     { to: '/profile', icon: UserCircle, label: 'Profile', roles: ['admin', 'faculty', 'student_mentor', 'student'] },
   ];
 
   const filteredNav = navItems.filter(item => user && item.roles.includes(user.role));
+
+  const getLabel = (item: typeof navItems[0]) => {
+    if (item.studentLabel && user?.role === 'student') {
+      return item.label; // Already set as "My Team" / "My Project"
+    }
+    if (item.studentLabel) {
+      return item.to === '/teams' ? 'Teams' : 'Projects';
+    }
+    return item.label;
+  };
 
   return (
     <aside className={cn(
@@ -92,7 +102,7 @@ const AppSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
             )}
           >
             <item.icon className="w-[18px] h-[18px] shrink-0" />
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{getLabel(item)}</span>}
           </NavLink>
         ))}
       </nav>

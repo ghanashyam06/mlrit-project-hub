@@ -14,7 +14,7 @@ const StudentDashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-heading font-bold">Student Dashboard</h1>
+        <h1 className="text-2xl font-heading font-bold">Team Portal</h1>
         <p className="text-muted-foreground text-sm mt-1">Welcome back, {user?.name}</p>
       </div>
 
