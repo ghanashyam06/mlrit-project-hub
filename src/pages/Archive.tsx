@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
 import { mockProjects, mockTeams, mockUsers } from '@/lib/mock-data';
-import StatusBadge from '@/components/StatusBadge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Archive as ArchiveIcon, Github, Users } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import StatusBadge from '@/components/StatusBadge';
 
 const ArchivePage: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [statusChangeMap, setStatusChangeMap] = useState<Record<string, string>>({});
 
   const years = [...new Set(mockProjects.map(p => p.academicYear))];
 
+  // Non-admin: only show completed projects. Admin: show all.
   const filtered = mockProjects.filter(p => {
+    if (!isAdmin && p.status !== 'Completed') return false;
     const matchSearch = search === '' || p.title.toLowerCase().includes(search.toLowerCase()) || p.domain.toLowerCase().includes(search.toLowerCase());
     const matchYear = yearFilter === 'all' || p.academicYear === yearFilter;
     return matchSearch && matchYear;
@@ -21,7 +27,9 @@ const ArchivePage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-heading font-bold">Project Archive</h1>
-        <p className="text-muted-foreground text-sm mt-1">Browse previous year projects</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          {isAdmin ? 'Browse and manage all archived projects' : 'Browse completed projects'}
+        </p>
       </div>
 
       <div className="flex gap-3">
@@ -50,7 +58,7 @@ const ArchivePage: React.FC = () => {
                   <p className="font-heading font-semibold">{p.title}</p>
                   <p className="text-xs text-muted-foreground mt-1">{p.domain} • {p.academicYear} • {p.semester}</p>
                 </div>
-                <StatusBadge status={p.status} />
+                {isAdmin && <StatusBadge status={p.status} />}
               </div>
 
               {p.githubLink && (
@@ -78,7 +86,7 @@ const ArchivePage: React.FC = () => {
           );
         })}
         {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">No projects found</p>
+          <p className="text-sm text-muted-foreground text-center py-8">No completed projects found</p>
         )}
       </div>
     </div>

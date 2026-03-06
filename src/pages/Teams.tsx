@@ -6,23 +6,39 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Mail, Phone, Github, Linkedin, Crown } from 'lucide-react';
+import { Plus, Users, Mail, Phone, Github, Linkedin, Crown, Download, Minus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 const Teams: React.FC = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const canCreateTeams = user?.role === 'student_mentor' || user?.role === 'admin';
+  const canExport = user?.role === 'student_mentor' || user?.role === 'faculty';
   const [createOpen, setCreateOpen] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamSize, setNewTeamSize] = useState('4');
+  const [newTeamSize, setNewTeamSize] = useState(4);
   const [newTeamLead, setNewTeamLead] = useState('');
+
+  // Admin filters
+  const [yearFilter, setYearFilter] = useState<string>('all');
+  const [semesterFilter, setSemesterFilter] = useState<string>('all');
+  const [sectionFilter, setSectionFilter] = useState<string>('all');
+
+  const years = [...new Set(mockSections.map(s => s.academicYear))];
+  const semesters = [...new Set(mockSections.map(s => s.semester))];
+
+  const availableSections = useMemo(() => {
+    let sections = mockSections;
+    if (yearFilter !== 'all') sections = sections.filter(s => s.academicYear === yearFilter);
+    if (semesterFilter !== 'all') sections = sections.filter(s => s.semester === semesterFilter);
+    return sections;
+  }, [yearFilter, semesterFilter]);
 
   const filteredTeams = useMemo(() => {
     if (user?.role === 'student') {
-      // Students see only their team
       return mockTeams.filter(t => t.members.some(m => m.id === user.id));
     } else if (user?.role === 'student_mentor') {
-      // Mentor sees only assigned section teams
       const assignedSections = mockSections.filter(s => s.studentMentors.some(m => m.id === user.id));
       const sectionIds = assignedSections.map(s => s.id);
       return mockTeams.filter(t => sectionIds.includes(t.sectionId));
@@ -31,12 +47,24 @@ const Teams: React.FC = () => {
       const sectionIds = assignedSections.map(s => s.id);
       return mockTeams.filter(t => sectionIds.includes(t.sectionId));
     }
-    return mockTeams;
-  }, [user]);
+    // Admin: apply filters
+    let teams = mockTeams;
+    if (sectionFilter !== 'all') {
+      teams = teams.filter(t => t.sectionId === sectionFilter);
+    } else if (yearFilter !== 'all' || semesterFilter !== 'all') {
+      const sectionIds = availableSections.map(s => s.id);
+      teams = teams.filter(t => sectionIds.includes(t.sectionId));
+    }
+    return teams;
+  }, [user, yearFilter, semesterFilter, sectionFilter, availableSections]);
 
   const students = mockUsers.filter(u => u.role === 'student');
 
-  // Student view: detailed team card
+  const handleExport = () => {
+    toast({ title: 'Export started', description: 'Team data is being exported to Excel.' });
+  };
+
+  // Student view
   if (user?.role === 'student' && filteredTeams.length > 0) {
     const team = filteredTeams[0];
     const lead = team.members.find(m => m.id === team.leadId);
@@ -103,44 +131,82 @@ const Teams: React.FC = () => {
           <h1 className="text-2xl font-heading font-bold">Teams</h1>
           <p className="text-muted-foreground text-sm mt-1">View and manage project teams</p>
         </div>
-        {canCreateTeams && (
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-2" /> Create Team</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Team</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Team Name</Label>
-                  <Input value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="e.g. Team Gamma" />
+        <div className="flex gap-2">
+          {canExport && (
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="w-4 h-4 mr-2" /> Export Excel
+            </Button>
+          )}
+          {canCreateTeams && (
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="w-4 h-4 mr-2" /> Create Team</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Team</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Team Name</Label>
+                    <Input value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="e.g. Team Gamma" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Team Size</Label>
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" size="icon" onClick={() => setNewTeamSize(Math.max(2, newTeamSize - 1))}>
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <span className="text-lg font-semibold w-8 text-center">{newTeamSize}</span>
+                      <Button variant="outline" size="icon" onClick={() => setNewTeamSize(Math.min(8, newTeamSize + 1))}>
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm text-muted-foreground">members</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Team Lead</Label>
+                    <Select value={newTeamLead} onValueChange={setNewTeamLead}>
+                      <SelectTrigger><SelectValue placeholder="Select team lead" /></SelectTrigger>
+                      <SelectContent>
+                        {students.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.rollNumber})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button className="w-full" onClick={() => setCreateOpen(false)}>Create Team</Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>Team Size</Label>
-                  <Select value={newTeamSize} onValueChange={setNewTeamSize}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {[2, 3, 4, 5, 6].map(n => <SelectItem key={n} value={String(n)}>{n} members</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Team Lead</Label>
-                  <Select value={newTeamLead} onValueChange={setNewTeamLead}>
-                    <SelectTrigger><SelectValue placeholder="Select team lead" /></SelectTrigger>
-                    <SelectContent>
-                      {students.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.rollNumber})</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button className="w-full" onClick={() => setCreateOpen(false)}>Create Team</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
+
+      {/* Admin filters */}
+      {isAdmin && (
+        <div className="flex gap-3">
+          <Select value={yearFilter} onValueChange={(v) => { setYearFilter(v); setSectionFilter('all'); }}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Academic Year" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={semesterFilter} onValueChange={(v) => { setSemesterFilter(v); setSectionFilter('all'); }}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Semester" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Semesters</SelectItem>
+              {semesters.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={sectionFilter} onValueChange={setSectionFilter}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Section" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sections</SelectItem>
+              {availableSections.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredTeams.map(team => {

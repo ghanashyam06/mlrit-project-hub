@@ -2,37 +2,44 @@ import React, { useState, useMemo } from 'react';
 import { mockProjects, mockTeams, mockSections } from '@/lib/mock-data';
 import StatusBadge from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Filter, ExternalLink, Github } from 'lucide-react';
+import { Download, ExternalLink, Github, Video, Save } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { ProjectStatus } from '@/lib/types';
+import { toast } from '@/hooks/use-toast';
+
+const statusOptions: ProjectStatus[] = ['Draft', 'Student Mentor Review', 'Faculty Review', 'Approved', 'Submitted to CIE', 'Completed'];
 
 const Projects: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isMentor = user?.role === 'student_mentor' || user?.role === 'faculty';
   const [yearFilter, setYearFilter] = useState<string>('all');
   const [semesterFilter, setSemesterFilter] = useState<string>('all');
+
+  // Editable fields for student project view
+  const [editGithub, setEditGithub] = useState('');
+  const [editVideo, setEditVideo] = useState('');
+  const [editingProject, setEditingProject] = useState(false);
 
   const filteredProjects = useMemo(() => {
     let projects = mockProjects;
 
-    // Role-based filtering
     if (user?.role === 'student') {
-      // Students see only their own project
       const myTeam = mockTeams.find(t => t.members.some(m => m.id === user.id));
       projects = projects.filter(p => p.teamId === myTeam?.id);
     } else if (user?.role === 'student_mentor') {
-      // Student mentors see only assigned section projects
       const assignedSections = mockSections.filter(s => s.studentMentors.some(m => m.id === user.id));
       const sectionIds = assignedSections.map(s => s.id);
       projects = projects.filter(p => sectionIds.includes(p.sectionId));
     } else if (user?.role === 'faculty') {
-      // Faculty see only assigned section projects
       const assignedSections = mockSections.filter(s => s.facultyMentor?.id === user.id);
       const sectionIds = assignedSections.map(s => s.id);
       projects = projects.filter(p => sectionIds.includes(p.sectionId));
     }
 
-    // Year/semester filters
     if (yearFilter !== 'all') projects = projects.filter(p => p.academicYear === yearFilter);
     if (semesterFilter !== 'all') projects = projects.filter(p => p.semester === semesterFilter);
 
@@ -42,7 +49,16 @@ const Projects: React.FC = () => {
   const years = [...new Set(mockProjects.map(p => p.academicYear))];
   const semesters = [...new Set(mockProjects.map(p => p.semester))];
 
-  // For student view, show detailed project card
+  const handleSaveProjectLinks = () => {
+    toast({ title: 'Links updated', description: 'Your GitHub and video links have been saved.' });
+    setEditingProject(false);
+  };
+
+  const handleStatusChange = (projectId: string, newStatus: ProjectStatus) => {
+    toast({ title: 'Status updated', description: `Project status changed to "${newStatus}".` });
+  };
+
+  // Student view: detailed project card with editable github/video links
   if (user?.role === 'student' && filteredProjects.length > 0) {
     const project = filteredProjects[0];
     const team = mockTeams.find(t => t.id === project.teamId);
@@ -63,11 +79,54 @@ const Projects: React.FC = () => {
             <div><span className="text-muted-foreground">Semester:</span> <span className="font-medium">{project.semester}</span></div>
             <div><span className="text-muted-foreground">Last Updated:</span> <span className="font-medium">{project.updatedAt}</span></div>
           </div>
-          {project.githubLink && (
-            <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-4 text-sm text-primary hover:underline">
-              <Github className="w-4 h-4" /> {project.githubLink}
-            </a>
-          )}
+
+          {/* Editable GitHub and Video links */}
+          <div className="mt-5 p-4 rounded-lg bg-muted/30 border border-border/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground">Project Links</p>
+              {!editingProject ? (
+                <Button variant="outline" size="sm" onClick={() => {
+                  setEditGithub(project.githubLink || '');
+                  setEditVideo(project.videoLink || '');
+                  setEditingProject(true);
+                }}>Edit Links</Button>
+              ) : (
+                <Button size="sm" onClick={handleSaveProjectLinks}>
+                  <Save className="w-3.5 h-3.5 mr-1.5" /> Save
+                </Button>
+              )}
+            </div>
+            {editingProject ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">GitHub Repository Link</Label>
+                  <Input value={editGithub} onChange={e => setEditGithub(e.target.value)} placeholder="https://github.com/..." />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Prototype Video Link</Label>
+                  <Input value={editVideo} onChange={e => setEditVideo(e.target.value)} placeholder="https://youtube.com/..." />
+                </div>
+              </>
+            ) : (
+              <>
+                {project.githubLink ? (
+                  <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                    <Github className="w-4 h-4" /> {project.githubLink}
+                  </a>
+                ) : (
+                  <p className="text-sm text-muted-foreground flex items-center gap-2"><Github className="w-4 h-4" /> No GitHub link added</p>
+                )}
+                {project.videoLink ? (
+                  <a href={project.videoLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                    <Video className="w-4 h-4" /> {project.videoLink}
+                  </a>
+                ) : (
+                  <p className="text-sm text-muted-foreground flex items-center gap-2"><Video className="w-4 h-4" /> No video link added</p>
+                )}
+              </>
+            )}
+          </div>
+
           {project.abstract && <p className="mt-4 text-sm text-muted-foreground">{project.abstract}</p>}
           {project.feedback && (
             <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50">
@@ -154,7 +213,20 @@ const Projects: React.FC = () => {
                 <tr key={project.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
                   <td className="p-4"><p className="font-medium">{project.title}</p></td>
                   <td className="p-4 text-muted-foreground">{project.domain}</td>
-                  <td className="p-4"><StatusBadge status={project.status} /></td>
+                  <td className="p-4">
+                    {isMentor ? (
+                      <Select defaultValue={project.status} onValueChange={(val) => handleStatusChange(project.id, val as ProjectStatus)}>
+                        <SelectTrigger className="w-44 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <StatusBadge status={project.status} />
+                    )}
+                  </td>
                   <td className="p-4 text-muted-foreground">{project.academicYear}</td>
                   <td className="p-4 text-muted-foreground">{project.updatedAt}</td>
                   <td className="p-4">
