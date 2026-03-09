@@ -58,7 +58,6 @@ const ArchivePage: React.FC = () => {
                   <p className="font-heading font-semibold">{p.title}</p>
                   <p className="text-xs text-muted-foreground mt-1">{p.domain} • {p.academicYear} • {p.semester}</p>
                 </div>
-                {isAdmin && <StatusBadge status={p.status} />}
               </div>
 
               {p.githubLink && (
