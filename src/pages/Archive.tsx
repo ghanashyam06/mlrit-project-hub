@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Archive as ArchiveIcon, Github, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import StatusBadge from '@/components/StatusBadge';
 
 const ArchivePage: React.FC = () => {
   const { user } = useAuth();
