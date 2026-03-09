@@ -10,7 +10,6 @@ const ArchivePage: React.FC = () => {
   const isAdmin = user?.role === 'admin';
   const [search, setSearch] = useState('');
   const [yearFilter, setYearFilter] = useState<string>('all');
-  const [statusChangeMap, setStatusChangeMap] = useState<Record<string, string>>({});
 
   const years = [...new Set(mockProjects.map(p => p.academicYear))];
 
