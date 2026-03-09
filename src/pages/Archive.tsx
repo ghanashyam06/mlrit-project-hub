@@ -26,9 +26,7 @@ const ArchivePage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-heading font-bold">Project Archive</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {isAdmin ? 'Browse and manage all archived projects' : 'Browse completed projects'}
-        </p>
+        <p className="text-muted-foreground text-sm mt-1">Browse approved projects</p>
       </div>
 
       <div className="flex gap-3">
