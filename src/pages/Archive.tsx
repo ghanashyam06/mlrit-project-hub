@@ -81,7 +81,7 @@ const ArchivePage: React.FC = () => {
           );
         })}
         {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">No completed projects found</p>
+          <p className="text-sm text-muted-foreground text-center py-8">No approved projects found</p>
         )}
       </div>
     </div>
