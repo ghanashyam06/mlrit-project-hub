@@ -15,9 +15,9 @@ const ArchivePage: React.FC = () => {
 
   const years = [...new Set(mockProjects.map(p => p.academicYear))];
 
-  // Non-admin: only show completed projects. Admin: show all.
+  // All roles: only show approved projects in archive
   const filtered = mockProjects.filter(p => {
-    if (!isAdmin && p.status !== 'Completed') return false;
+    if (p.status !== 'Approved') return false;
     const matchSearch = search === '' || p.title.toLowerCase().includes(search.toLowerCase()) || p.domain.toLowerCase().includes(search.toLowerCase());
     const matchYear = yearFilter === 'all' || p.academicYear === yearFilter;
     return matchSearch && matchYear;
