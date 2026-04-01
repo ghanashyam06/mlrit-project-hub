@@ -158,6 +158,31 @@ const Projects: React.FC = () => {
     );
   }
 
+  const handleExport = () => {
+    const headers = ['ID', 'Title', 'Domain', 'Status', 'Academic Year', 'Semester', 'Updated At'];
+    const csvData = filteredProjects.map(p => [
+      p.id,
+      `"${p.title.replace(/"/g, '""')}"`,
+      p.domain,
+      p.status,
+      p.academicYear,
+      p.semester,
+      p.updatedAt
+    ]);
+
+    const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "projects_export.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: 'Export complete', description: 'Projects have been downloaded as CSV.' });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -167,7 +192,7 @@ const Projects: React.FC = () => {
         </div>
         <div className="flex gap-2">
           {isAdmin && (
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" /> Export Excel
             </Button>
           )}

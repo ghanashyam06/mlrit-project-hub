@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Users, Layers, FolderKanban, FileCheck,
-  Megaphone, Archive, UserCircle, LogOut, GraduationCap, ChevronLeft, ChevronRight
+  Megaphone, Archive, UserCircle, LogOut, GraduationCap, ChevronLeft, ChevronRight, Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +38,7 @@ const AppSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'faculty', 'student_mentor', 'student'] },
     { to: '/sections', icon: Layers, label: 'Sections', roles: ['admin', 'faculty', 'student_mentor'] },
+    { to: '/timetable', icon: Calendar, label: 'Time Table', roles: ['admin', 'faculty', 'student_mentor'] },
     { to: '/mentors', icon: Users, label: 'Mentors', roles: ['admin'] },
     { to: '/teams', icon: FolderKanban, label: 'My Team', studentLabel: true, roles: ['admin', 'faculty', 'student_mentor', 'student'] },
     { to: '/projects', icon: FileCheck, label: 'My Project', studentLabel: true, roles: ['admin', 'faculty', 'student_mentor', 'student'] },
@@ -70,7 +71,7 @@ const AppSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <p className="font-heading font-bold text-sidebar-foreground text-sm">ProjectSphere</p>
+            <p className="font-heading font-bold text-sidebar-foreground text-sm leading-tight text-center">CIE MLRIT<br/>Project Hub</p>
             <p className="text-[10px] text-sidebar-muted truncate">MLRIT Portal</p>
           </div>
         )}

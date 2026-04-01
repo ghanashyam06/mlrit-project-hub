@@ -1,25 +1,423 @@
-import React, { useMemo } from 'react';
-import { mockSections } from '@/lib/mock-data';
+import React, { useState } from 'react';
+import { mockSections, mockUsers } from '@/lib/mock-data';
+import { Section, User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, UserCheck } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from '@/components/ui/dialog';
+import { Plus, Users, UserCheck, Pencil, Trash2, AlertTriangle, Search, Mail, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+
+type DialogMode = 'add' | 'edit' | 'remove' | null;
 
 const Sections: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
-  const sections = useMemo(() => {
+  const [sections, setSections] = useState<Section[]>(() => {
     if (user?.role === 'faculty') {
       return mockSections.filter(s => s.facultyMentor?.id === user.id);
     } else if (user?.role === 'student_mentor') {
       return mockSections.filter(s => s.studentMentors.some(m => m.id === user.id));
     }
-    return mockSections;
-  }, [user]);
+    return [...mockSections];
+  });
+
+  // Dialog state
+  const [dialogMode, setDialogMode] = useState<DialogMode>(null);
+  const [formData, setFormData] = useState({ name: '', department: 'CSE', academicYear: '', semester: 'Sem 1', studentCount: '' });
+  const [selectedFaculty, setSelectedFaculty] = useState('');
+  const [selectedStudentMentors, setSelectedStudentMentors] = useState<string[]>([]);
+  const [formError, setFormError] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [removingSection, setRemovingSection] = useState<Section | null>(null);
+  
+  // Mentor search & quick edit
+  const [facultySearch, setFacultySearch] = useState('');
+  const [studentMentorSearch, setStudentMentorSearch] = useState('');
+  const [quickEditMentor, setQuickEditMentor] = useState<User | null>(null);
+  const [quickEditData, setQuickEditData] = useState({ name: '', email: '', department: '' });
+
+  const departments = ['CSE', 'CSM', 'CSD', 'MECH', 'AERO', 'EEE', 'ECE'];
+  const semesters = ['Sem 1', 'Sem 2'];
+
+  const facultyList = mockUsers.filter(u => u.role === 'faculty');
+  const studentMentorList = mockUsers.filter(u => u.role === 'student_mentor');
+
+  const resetForm = () => {
+    setFormData({ name: '', department: 'CSE', academicYear: '2024-25', semester: 'Sem 1', studentCount: '' });
+    setSelectedFaculty('');
+    setSelectedStudentMentors([]);
+    setFormError('');
+    setEditingId(null);
+    setRemovingSection(null);
+  };
+
+  const closeDialog = () => {
+    setDialogMode(null);
+    setFacultySearch('');
+    setStudentMentorSearch('');
+    resetForm();
+  };
+
+  /* ── Add ── */
+  const openAdd = () => {
+    resetForm();
+    setDialogMode('add');
+  };
+
+  const handleAdd = () => {
+    if (!formData.name.trim() || !formData.academicYear.trim() || !formData.department.trim()) {
+      setFormError('Name, academic year, and department are required.');
+      return;
+    }
+    if (!selectedFaculty) {
+      setFormError('A faculty mentor must be assigned.');
+      return;
+    }
+    if (selectedStudentMentors.length < 3) {
+      setFormError('A section must have at least 3 student mentors.');
+      return;
+    }
+
+    // Mentor Uniqueness Check
+    const mentorIdsInOtherSections = sections.flatMap(s => [
+      ...(s.facultyMentor ? [s.facultyMentor.id] : []),
+      ...s.studentMentors.map(m => m.id)
+    ]);
+
+    if (mentorIdsInOtherSections.includes(selectedFaculty)) {
+      const mentorName = facultyList.find(f => f.id === selectedFaculty)?.name;
+      setFormError(`Faculty mentor ${mentorName} is already assigned to another section.`);
+      return;
+    }
+
+    for (const smId of selectedStudentMentors) {
+      if (mentorIdsInOtherSections.includes(smId)) {
+        const mentorName = studentMentorList.find(m => m.id === smId)?.name;
+        setFormError(`Student mentor ${mentorName} is already assigned to another section.`);
+        return;
+      }
+    }
+
+    const facultyMentor = facultyList.find(f => f.id === selectedFaculty) || null;
+    const studentMentors = studentMentorList.filter(m => selectedStudentMentors.includes(m.id));
+
+    const newSection: Section = {
+      id: `s-${Date.now()}`,
+      name: formData.name.trim(),
+      department: formData.department.trim(),
+      academicYear: formData.academicYear.trim(),
+      semester: formData.semester.trim(),
+      facultyMentor,
+      studentMentors,
+      studentCount: parseInt(formData.studentCount) || 0,
+    };
+    setSections(prev => [...prev, newSection]);
+    closeDialog();
+  };
+
+  /* ── Edit ── */
+  const openEdit = (section: Section) => {
+    setEditingId(section.id);
+    setFormData({
+      name: section.name,
+      department: section.department,
+      academicYear: section.academicYear,
+      semester: section.semester,
+      studentCount: String(section.studentCount),
+    });
+    setSelectedFaculty(section.facultyMentor?.id || '');
+    setSelectedStudentMentors(section.studentMentors.map(m => m.id));
+    setFormError('');
+    setDialogMode('edit');
+  };
+
+  const handleEdit = () => {
+    if (!formData.name.trim() || !formData.academicYear.trim() || !formData.department.trim()) {
+      setFormError('Name, academic year, and department are required.');
+      return;
+    }
+    if (!selectedFaculty) {
+      setFormError('A faculty mentor must be assigned.');
+      return;
+    }
+    if (selectedStudentMentors.length < 3) {
+      setFormError('A section must have at least 3 student mentors.');
+      return;
+    }
+
+    // Mentor Uniqueness Check
+    const mentorIdsInOtherSections = sections
+      .filter(s => s.id !== editingId)
+      .flatMap(s => [
+        ...(s.facultyMentor ? [s.facultyMentor.id] : []),
+        ...s.studentMentors.map(m => m.id)
+      ]);
+
+    if (mentorIdsInOtherSections.includes(selectedFaculty)) {
+      const mentorName = facultyList.find(f => f.id === selectedFaculty)?.name;
+      setFormError(`Faculty mentor ${mentorName} is already assigned to another section.`);
+      return;
+    }
+
+    for (const smId of selectedStudentMentors) {
+      if (mentorIdsInOtherSections.includes(smId)) {
+        const mentorName = studentMentorList.find(m => m.id === smId)?.name;
+        setFormError(`Student mentor ${mentorName} is already assigned to another section.`);
+        return;
+      }
+    }
+
+    const facultyMentor = facultyList.find(f => f.id === selectedFaculty) || null;
+    const studentMentors = studentMentorList.filter(m => selectedStudentMentors.includes(m.id));
+
+    setSections(prev =>
+      prev.map(s =>
+        s.id === editingId
+          ? {
+              ...s,
+              name: formData.name.trim(),
+              department: formData.department.trim(),
+              academicYear: formData.academicYear.trim(),
+              semester: formData.semester.trim(),
+              studentCount: parseInt(formData.studentCount) || 0,
+              facultyMentor,
+              studentMentors,
+            }
+          : s
+      )
+    );
+    closeDialog();
+  };
+
+  /* ── Remove ── */
+  const openRemove = (section: Section) => {
+    setRemovingSection(section);
+    setDialogMode('remove');
+  };
+
+  const handleRemove = () => {
+    if (removingSection) {
+      setSections(prev => prev.filter(s => s.id !== removingSection.id));
+    }
+    closeDialog();
+  };
+
+  /* ── Toggle student mentor ── */
+  const toggleStudentMentor = (id: string) => {
+    setSelectedStudentMentors(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 4 ? [...prev, id] : prev
+    );
+  };
+
+  /* ── Form ── */
+  const renderForm = () => (
+    <div className="space-y-4 py-2">
+      <div className="space-y-2">
+        <Label htmlFor="sec-name">Section Name *</Label>
+        <Input
+          id="sec-name"
+          placeholder="e.g. Section A"
+          value={formData.name}
+          onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Department *</Label>
+        <div className="flex flex-wrap gap-2">
+          {departments.map(dept => (
+            <button
+              key={dept}
+              type="button"
+              onClick={() => setFormData(p => ({ ...p, department: dept }))}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                formData.department === dept
+                  ? 'bg-primary border-primary text-primary-foreground'
+                  : 'border-border text-muted-foreground hover:bg-muted/50'
+              }`}
+            >
+              {dept}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="sec-year">Academic Year *</Label>
+          <Input
+            id="sec-year"
+            placeholder="e.g. 2024-25"
+            value={formData.academicYear}
+            onChange={e => setFormData(p => ({ ...p, academicYear: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Semester *</Label>
+          <div className="flex gap-2">
+            {semesters.map(sem => (
+              <button
+                key={sem}
+                type="button"
+                onClick={() => setFormData(p => ({ ...p, semester: sem }))}
+                className={`flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                  formData.semester === sem
+                    ? 'bg-secondary border-secondary text-secondary-foreground'
+                    : 'border-border text-muted-foreground hover:bg-muted/50'
+                }`}
+              >
+                {sem}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="sec-count">Student Count</Label>
+        <Input
+          id="sec-count"
+          type="number"
+          placeholder="e.g. 65"
+          value={formData.studentCount}
+          onChange={e => setFormData(p => ({ ...p, studentCount: e.target.value }))}
+        />
+      </div>
+
+      {/* Faculty Mentor picker */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold">Faculty Mentor</Label>
+          <div className="relative w-48">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search faculty..."
+              className="pl-8 h-8 text-xs"
+              value={facultySearch}
+              onChange={e => setFacultySearch(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-1 border rounded-md bg-muted/5">
+          <button
+            type="button"
+            onClick={() => setSelectedFaculty('')}
+            className={`flex items-center px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+              selectedFaculty === ''
+                ? 'bg-background border-primary shadow-sm'
+                : 'border-transparent hover:bg-muted'
+            }`}
+          >
+            None (Unassigned)
+          </button>
+          
+          {facultyList
+            .filter(f => f.name.toLowerCase().includes(facultySearch.toLowerCase()))
+            .map(f => {
+              const isAssigned = sections.some(s => s.id !== editingId && s.facultyMentor?.id === f.id);
+              return (
+                <div key={f.id} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isAssigned}
+                    onClick={() => setSelectedFaculty(f.id)}
+                    className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                      selectedFaculty === f.id
+                        ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 text-blue-700'
+                        : isAssigned 
+                          ? 'opacity-50 cursor-not-allowed bg-muted border-transparent'
+                          : 'border-transparent hover:bg-muted'
+                    }`}
+                  >
+                    <div className="flex flex-col items-start">
+                      <span>{f.name}</span>
+                      <span className="text-[10px] text-muted-foreground">{f.department}</span>
+                    </div>
+                    {isAssigned && <Badge variant="outline" className="text-[9px] h-4">Assigned</Badge>}
+                  </button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8" 
+                    onClick={() => { setQuickEditMentor(f); setQuickEditData({ name: f.name, email: f.email, department: f.department || '' }); }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* Student Mentors picker */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold">Student Mentors (min 3, max 4)</Label>
+          <div className="relative w-48">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search mentors..."
+              className="pl-8 h-8 text-xs"
+              value={studentMentorSearch}
+              onChange={e => setStudentMentorSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto p-1 border rounded-md bg-muted/5">
+          {studentMentorList
+            .filter(m => m.name.toLowerCase().includes(studentMentorSearch.toLowerCase()))
+            .map(m => {
+              const isAssigned = sections.some(s => s.id !== editingId && s.studentMentors.some(sm => sm.id === m.id));
+              const isSelected = selectedStudentMentors.includes(m.id);
+              
+              return (
+                <div key={m.id} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isAssigned && !isSelected}
+                    onClick={() => toggleStudentMentor(m.id)}
+                    className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                      isSelected
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 text-emerald-700'
+                        : isAssigned 
+                          ? 'opacity-50 cursor-not-allowed bg-muted border-transparent'
+                          : 'border-transparent hover:bg-muted'
+                    }`}
+                  >
+                    <div className="flex flex-col items-start">
+                      <span>{m.name}</span>
+                      <span className="text-[10px] text-muted-foreground">{m.rollNumber} • {m.department}</span>
+                    </div>
+                    {isAssigned && !isSelected && <Badge variant="outline" className="text-[9px] h-4">Assigned</Badge>}
+                  </button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8" 
+                    onClick={() => { setQuickEditMentor(m); setQuickEditData({ name: m.name, email: m.email, department: m.department || '' }); }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {formError && <p className="text-destructive text-sm">{formError}</p>}
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold">Sections</h1>
@@ -28,20 +426,73 @@ const Sections: React.FC = () => {
           </p>
         </div>
         {isAdmin && (
-          <Button>
+          <Button onClick={openAdd}>
             <Plus className="w-4 h-4 mr-2" /> Add Section
           </Button>
         )}
       </div>
 
+      {/* ═══════ Add / Edit Dialog ═══════ */}
+      <Dialog open={dialogMode === 'add' || dialogMode === 'edit'} onOpenChange={open => { if (!open) closeDialog(); }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-heading">
+              {dialogMode === 'edit' ? 'Edit Section' : 'Add New Section'}
+            </DialogTitle>
+            <DialogDescription>
+              {dialogMode === 'edit'
+                ? 'Update the section details and mentor assignments.'
+                : 'Create a new section and assign mentors.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {renderForm()}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+            <Button onClick={dialogMode === 'edit' ? handleEdit : handleAdd}>
+              {dialogMode === 'edit' ? (
+                <><Pencil className="w-4 h-4 mr-1" /> Save Changes</>
+              ) : (
+                <><Plus className="w-4 h-4 mr-1" /> Add Section</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════ Remove Confirmation Dialog ═══════ */}
+      <Dialog open={dialogMode === 'remove'} onOpenChange={open => { if (!open) closeDialog(); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-heading flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" /> Remove Section
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove <strong>{removingSection?.name}</strong>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+            <Button variant="destructive" onClick={handleRemove}>
+              <Trash2 className="w-4 h-4 mr-1" /> Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════ Section Cards ═══════ */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sections.map(section => (
-          <div key={section.id} className="rounded-xl border border-border bg-card p-5 hover:shadow-md transition-shadow animate-fade-in">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-heading font-semibold text-lg">{section.name}</h3>
-              <div className="flex gap-1.5">
-                <Badge variant="secondary">{section.academicYear}</Badge>
-                <Badge variant="outline">{section.semester}</Badge>
+          <div key={section.id} className="rounded-xl border border-border bg-card p-5 hover:shadow-md transition-shadow animate-fade-in flex flex-col">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="font-heading font-semibold text-lg leading-tight">{section.name}</h3>
+                <p className="text-xs font-medium text-primary mt-0.5">{section.department}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1.5">
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{section.academicYear}</Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">{section.semester}</Badge>
               </div>
             </div>
 
@@ -61,7 +512,7 @@ const Sections: React.FC = () => {
               </div>
 
               <div className="p-3 rounded-lg bg-gradient-card-green border border-border/50">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Student Mentors ({section.studentMentors.length}/3)</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Student Mentors ({section.studentMentors.length}/4)</p>
                 {section.studentMentors.length > 0 ? (
                   <div className="space-y-1">
                     {section.studentMentors.map(m => (
@@ -73,7 +524,7 @@ const Sections: React.FC = () => {
                 )}
               </div>
 
-              {section.studentMentors.length < 3 || !section.facultyMentor ? (
+              {section.studentMentors.length < 3 || section.studentMentors.length > 4 || !section.facultyMentor ? (
                 <div className="flex items-center gap-1.5 text-xs text-destructive">
                   <UserCheck className="w-3 h-3" />
                   <span>Mentor assignment incomplete</span>
@@ -84,14 +535,86 @@ const Sections: React.FC = () => {
                   <span>Fully assigned</span>
                 </div>
               )}
+
+              {/* Edit / Remove buttons — admin only */}
+              {isAdmin && (
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(section)}>
+                    <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-destructive hover:text-destructive"
+                    onClick={() => openRemove(section)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ))}
         {sections.length === 0 && (
-          <p className="text-sm text-muted-foreground col-span-3 text-center py-8">No sections assigned</p>
+          <div className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground text-sm col-span-3">
+            No sections found. Click "Add Section" to create one.
+          </div>
         )}
       </div>
     </div>
+
+    {/* ═══════ Quick Edit Mentor Dialog ═══════ */}
+    <Dialog open={!!quickEditMentor} onOpenChange={() => setQuickEditMentor(null)}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 font-heading">
+            <Pencil className="w-4 h-4" /> Quick Edit Mentor
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Full Name</Label>
+            <Input 
+              value={quickEditData.name} 
+              onChange={e => setQuickEditData(p => ({ ...p, name: e.target.value }))} 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input 
+              value={quickEditData.email} 
+              onChange={e => setQuickEditData(p => ({ ...p, email: e.target.value }))} 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Department</Label>
+            <Input 
+              value={quickEditData.department} 
+              onChange={e => setQuickEditData(p => ({ ...p, department: e.target.value }))} 
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setQuickEditMentor(null)}>Cancel</Button>
+          <Button onClick={() => {
+            if (quickEditMentor) {
+              const idx = mockUsers.findIndex(u => u.id === quickEditMentor.id);
+              if (idx !== -1) {
+                const updatedMentor = { ...mockUsers[idx], ...quickEditData };
+                mockUsers[idx] = updatedMentor;
+                setSections(prev => prev.map(s => ({
+                  ...s,
+                  facultyMentor: s.facultyMentor?.id === updatedMentor.id ? updatedMentor : s.facultyMentor,
+                  studentMentors: s.studentMentors.map(m => m.id === updatedMentor.id ? updatedMentor : m)
+                })));
+              }
+              setQuickEditMentor(null);
+            }
+          }}>Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 

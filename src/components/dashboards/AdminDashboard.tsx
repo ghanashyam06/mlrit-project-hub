@@ -1,13 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import StatCard from '@/components/StatCard';
 import { mockProjects, mockSections, mockUsers, mockAnnouncements } from '@/lib/mock-data';
-import { Users, Layers, FileCheck, Clock, Megaphone, UserPlus } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Users, Layers, FileCheck, Clock, Megaphone } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toast } from '@/hooks/use-toast';
 import { ProjectStatus } from '@/lib/types';
 
@@ -24,12 +19,6 @@ const AdminDashboard: React.FC = () => {
   const totalStudents = mockUsers.filter(u => u.role === 'student').length;
   const pendingApprovals = mockProjects.filter(p => p.status === 'Faculty Review' || p.status === 'Student Mentor Review').length;
 
-  const [createFacultyOpen, setCreateFacultyOpen] = useState(false);
-  const [newFacultyName, setNewFacultyName] = useState('');
-  const [newFacultyEmail, setNewFacultyEmail] = useState('');
-  const [newFacultyDept, setNewFacultyDept] = useState('');
-  const [newFacultyPassword, setNewFacultyPassword] = useState('');
-
   // Section-wise project status analysis
   const sectionProjectData = useMemo(() => {
     return mockSections.map(section => {
@@ -43,15 +32,6 @@ const AdminDashboard: React.FC = () => {
     });
   }, []);
 
-  const handleCreateFaculty = () => {
-    toast({ title: 'Faculty mentor created', description: `Credentials created for ${newFacultyName}.` });
-    setCreateFacultyOpen(false);
-    setNewFacultyName('');
-    setNewFacultyEmail('');
-    setNewFacultyDept('');
-    setNewFacultyPassword('');
-  };
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -59,35 +39,6 @@ const AdminDashboard: React.FC = () => {
           <h1 className="text-2xl font-heading font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">Welcome back, Dr. Rajesh Kumar</p>
         </div>
-        <Dialog open={createFacultyOpen} onOpenChange={setCreateFacultyOpen}>
-          <DialogTrigger asChild>
-            <Button><UserPlus className="w-4 h-4 mr-2" /> Add Faculty Mentor</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Faculty Mentor Credentials</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input value={newFacultyName} onChange={e => setNewFacultyName(e.target.value)} placeholder="Prof. Name" />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" value={newFacultyEmail} onChange={e => setNewFacultyEmail(e.target.value)} placeholder="email@mlrit.ac.in" />
-              </div>
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <Input value={newFacultyDept} onChange={e => setNewFacultyDept(e.target.value)} placeholder="CSE" />
-              </div>
-              <div className="space-y-2">
-                <Label>Password</Label>
-                <Input type="password" value={newFacultyPassword} onChange={e => setNewFacultyPassword(e.target.value)} placeholder="Initial password" />
-              </div>
-              <Button className="w-full" onClick={handleCreateFaculty}>Create Credentials</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

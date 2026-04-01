@@ -1,22 +1,34 @@
-import { User, Section, Team, Project, Announcement, UserRole } from './types';
+import { User, Section, Team, Project, Announcement, UserRole, TimetableEntry } from './types';
 
 export const mockUsers: User[] = [
-  { id: '1', name: 'Dr. Rajesh Kumar', email: 'rajesh@mlrit.ac.in', role: 'admin', department: 'CSE', githubLink: 'https://github.com/rajeshk', linkedinLink: 'https://linkedin.com/in/rajeshk' },
-  { id: '2', name: 'Prof. Anitha Sharma', email: 'anitha@mlrit.ac.in', role: 'faculty', department: 'CSE', phone: '9876543210', githubLink: 'https://github.com/anithas', linkedinLink: 'https://linkedin.com/in/anithas' },
-  { id: '3', name: 'Prof. Venkat Rao', email: 'venkat@mlrit.ac.in', role: 'faculty', department: 'ECE', phone: '9876543211' },
-  { id: '4', name: 'Sai Kiran M', email: 'saikiran@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0501', department: 'CSE', phone: '9876543212', githubLink: 'https://github.com/saikiran', linkedinLink: 'https://linkedin.com/in/saikiran' },
-  { id: '5', name: 'Priya Reddy', email: 'priya@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0502', department: 'CSE', phone: '9876543213' },
-  { id: '6', name: 'Ravi Teja K', email: 'ravi@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0503', department: 'CSE', phone: '9876543214' },
-  { id: '7', name: 'Akhil Sharma', email: 'akhil@mlrit.ac.in', role: 'student', rollNumber: '23B01A0501', department: 'CSE', phone: '9876543215', githubLink: 'https://github.com/akhils', linkedinLink: 'https://linkedin.com/in/akhils' },
-  { id: '8', name: 'Meera Joshi', email: 'meera@mlrit.ac.in', role: 'student', rollNumber: '23B01A0502', department: 'CSE', phone: '9876543216', githubLink: 'https://github.com/meeraj' },
-  { id: '9', name: 'Rohit Patel', email: 'rohit@mlrit.ac.in', role: 'student', rollNumber: '23B01A0503', department: 'CSE', phone: '9876543217' },
-  { id: '10', name: 'Sneha Gupta', email: 'sneha@mlrit.ac.in', role: 'student', rollNumber: '23B01A0504', department: 'CSE', phone: '9876543218', linkedinLink: 'https://linkedin.com/in/snehag' },
+  { id: '1', name: 'Dr. Rajesh Kumar', email: 'rajesh@mlrit.ac.in', role: 'admin', department: 'CSE' },
+  { id: '2', name: 'Prof. Anitha Sharma', email: 'anitha@mlrit.ac.in', role: 'faculty', department: 'CSE' },
+  { id: '3', name: 'Prof. Venkat Rao', email: 'venkat@mlrit.ac.in', role: 'faculty', department: 'ECE' },
+  { id: '4', name: 'Sai Kiran M', email: 'saikiran@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0501', department: 'CSE' },
+  { id: '5', name: 'Priya Reddy', email: 'priya@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0502', department: 'CSE' },
+  { id: '6', name: 'Ravi Teja K', email: 'ravi@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0503', department: 'CSE' },
+  { id: '7', name: 'Kavya Sree', email: 'kavya@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0504', department: 'ECE' },
+  { id: '8', name: 'Siddharth M', email: 'sid@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0505', department: 'ECE' },
+  { id: '9', name: 'Ananya P', email: 'ananya@mlrit.ac.in', role: 'student_mentor', rollNumber: '22B01A0506', department: 'ECE' },
+  { id: '10', name: 'Akhil Sharma', email: 'akhil@mlrit.ac.in', role: 'student', rollNumber: '23B01A0501', department: 'CSE' },
+  { id: '11', name: 'Meera Joshi', email: 'meera@mlrit.ac.in', role: 'student', rollNumber: '23B01A0502', department: 'CSE' },
+  { id: '12', name: 'Rohit Patel', email: 'rohit@mlrit.ac.in', role: 'student', rollNumber: '23B01A0503', department: 'CSE' },
 ];
 
 export const mockSections: Section[] = [
-  { id: 's1', name: 'Section A', academicYear: '2024-25', semester: 'Sem 1', facultyMentor: mockUsers[1], studentMentors: [mockUsers[3], mockUsers[4], mockUsers[5]], studentCount: 65 },
-  { id: 's2', name: 'Section B', academicYear: '2024-25', semester: 'Sem 1', facultyMentor: mockUsers[2], studentMentors: [mockUsers[3], mockUsers[4], mockUsers[5]], studentCount: 62 },
-  { id: 's3', name: 'Section C', academicYear: '2024-25', semester: 'Sem 2', facultyMentor: null, studentMentors: [], studentCount: 58 },
+  { 
+    id: 's1', name: 'Section A', department: 'CSE', academicYear: '2024-25', semester: 'Sem 1', 
+    facultyMentor: mockUsers[1], // Anitha Sharma
+    studentMentors: [mockUsers[3], mockUsers[4], mockUsers[5]], // Sai, Priya, Ravi
+    studentCount: 65 
+  },
+  { 
+    id: 's2', name: 'Section B', department: 'ECE', academicYear: '2024-25', semester: 'Sem 1', 
+    facultyMentor: mockUsers[2], // Venkat Rao
+    studentMentors: [mockUsers[6], mockUsers[7], mockUsers[8]], // Kavya, Siddharth, Ananya
+    studentCount: 62 
+  },
+  { id: 's3', name: 'Section C', department: 'CSE', academicYear: '2024-25', semester: 'Sem 2', facultyMentor: null, studentMentors: [], studentCount: 58 },
 ];
 
 export const mockTeams: Team[] = [
@@ -33,8 +45,21 @@ export const mockProjects: Project[] = [
 ];
 
 export const mockAnnouncements: Announcement[] = [
-  { id: 'a1', title: 'CIE Submission Deadline Extended', content: 'The deadline for CIE submission has been extended to January 15, 2025.', author: 'Dr. Rajesh Kumar', createdAt: '2024-12-15' },
-  { id: 'a2', title: 'Mentor Meeting This Friday', content: 'All mentors are requested to attend the weekly review meeting on Friday at 3 PM.', author: 'Dr. Rajesh Kumar', createdAt: '2024-12-12' },
+  { id: 'a1', title: 'CIE Submission Deadline Extended', content: 'The deadline for CIE submission has been extended to January 15, 2025.', author: 'Dr. Rajesh Kumar', createdAt: '2024-12-15', targetAudience: 'all' },
+  { id: 'a2', title: 'Mentor Meeting This Friday', content: 'All mentors are requested to attend the weekly review meeting on Friday at 3 PM.', author: 'Dr. Rajesh Kumar', createdAt: '2024-12-12', targetAudience: 'all' },
+];
+
+export const mockTimetable: TimetableEntry[] = [
+  { 
+    id: 'tt1', day: 'Monday', startTime: '10:20', endTime: '12:20', 
+    dept: 'CSE', sectionName: 'Section A', 
+    facultyMentorId: '2', studentMentorIds: ['4', '5', '6'], room: 'LHC-101' 
+  },
+  { 
+    id: 'tt2', day: 'Tuesday', startTime: '10:20', endTime: '12:20', 
+    dept: 'ECE', sectionName: 'Section B', 
+    facultyMentorId: '3', studentMentorIds: ['7', '8', '9'], room: 'LHC-203' 
+  },
 ];
 
 export const domainStats = [

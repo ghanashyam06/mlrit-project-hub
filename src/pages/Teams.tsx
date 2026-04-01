@@ -61,7 +61,30 @@ const Teams: React.FC = () => {
   const students = mockUsers.filter(u => u.role === 'student');
 
   const handleExport = () => {
-    toast({ title: 'Export started', description: 'Team data is being exported to Excel.' });
+    const headers = ['Team ID', 'Team Name', 'Lead Name', 'Section ID', 'Members'];
+    const csvData = filteredTeams.map(t => {
+      const lead = t.members.find(m => m.id === t.leadId);
+      const members = t.members.map(m => m.name).join("; ");
+      return [
+        t.id,
+        `"${t.name.replace(/"/g, '""')}"`,
+        lead ? lead.name : 'N/A',
+        t.sectionId,
+        `"${members.replace(/"/g, '""')}"`
+      ];
+    });
+
+    const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "teams_export.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: 'Export complete', description: 'Team data has been downloaded as CSV.' });
   };
 
   // Student view
